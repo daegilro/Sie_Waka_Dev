@@ -1,7 +1,8 @@
-#include "DFRobot_ECPRO.h"
+#include <DFRobot_ECPRO.h>
 
-#define EC_PIN A1
-#define TE_PIN A2
+
+#define EC_PIN 10
+#define TE_PIN 12
 
 DFRobot_ECPRO ec;
 DFRobot_ECPRO_PT1000 ecpt;
