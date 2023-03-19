@@ -6,7 +6,7 @@
 const char* ssid ="Hola" ;
 const char* password ="123";
 //---- MQTT Broker settings
-const char* mqtt_server = "d008f2372f934a7ab0adb29438c3ef56.s2.eu.hivemq.cloud"; // replace with your broker url
+const char* mqtt_server = "d008f2372f934a7ab0adb29438c3ef56.s2.eu.hivemq.cloud"; 
 const char* mqtt_username = "daegilro";
 const char* mqtt_password = "DavidMQTT123";
 const int mqtt_port = 8883;
@@ -88,7 +88,7 @@ void loop() {
 
   
 
-  publishMessage(sensor1_topic,String(1),true);    
+  publishMessage(Sen_Temp_Topic,String(1),true);    
 }
 
 //=======================================================================Function=================================================================================
