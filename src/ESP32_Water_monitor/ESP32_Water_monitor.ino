@@ -57,6 +57,9 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
+// Variables sensores
+float temp_sens, cond_sens,ph_sens,tds_sens;
+
 void setup() {
 
 Serial.begin(9600);
@@ -88,7 +91,10 @@ void loop() {
 
   
 
-  publishMessage(Sen_Temp_Topic,String(1),true);    
+  publishMessage(Sen_Temp_Topic,String(temp_sens),true);  
+  publishMessage(Sen_Cond_Topic,String(cond_sens),true);  
+  publishMessage(Sen_Ph_Topic,String(ph_sens),true);  
+  publishMessage(Sen_TDS_Topic,String(tds_sens),true);    
 }
 
 //=======================================================================Function=================================================================================
