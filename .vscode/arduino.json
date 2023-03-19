@@ -1,5 +1,5 @@
 {
-    "sketch": "src\\ESP32_Water_monitor\\ESP32_Water_monitor.ino",
+    "sketch": "Sources\\Conductividad_Calibrate_SKU_SEN0451\\Conductividad_Calibrate_SKU_SEN0451.ino",
     "configuration": "JTAGAdapter=external,PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=115200,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none",
     "board": "esp32:esp32:esp32"
 }
