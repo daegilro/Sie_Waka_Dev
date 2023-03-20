@@ -1,3 +1,4 @@
+//------ Include  libraries
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
@@ -18,7 +19,7 @@ unsigned long lastMsg = 0;
 
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
-
+//------- Topoics MQTT Broker
 const char* Sen_Temp_Topic= "Sensor Temperatura";
 const char* Sen_Cond_Topic= "Sensor Conductividad";
 const char* Sen_Ph_Topic= "Sensor ph";
@@ -58,8 +59,25 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
-// Variables sensores
+//------- Variables sensores--------------
 float temp_sens, cond_sens,ph_sens,tds_sens;
+
+//------ Definicion Pines conexiòn ESP32------------------------
+
+#define EC_PIN 10
+#define TE_PIN 12
+
+
+
+//------- Config Sens Conductividad y Temperatura----------------------
+
+DFRobot_ECPRO ec;
+DFRobot_ECPRO_PT1000 ecpt;
+
+uint16_t EC_Voltage, TE_Voltage;
+float Conductivity, Temp;
+
+//------ Config Sens PH------------------------------------
 
 void setup() {
 
@@ -83,12 +101,28 @@ while (!Serial) delay(1);
 espClient.setCACert(root_ca);
 client.setServer(mqtt_server, mqtt_port);
 client.setCallback(callback);
+
+//--- Setup Conduct and Temp sens
+
+  ec.setCalibration(1); //Replace the 1 with the calibrated K value if it's calibrated
+  Serial.println("Default Calibration K=" + String(ec.getCalibration()));
 }
 
 void loop() {
 
   if (!client.connected()) reconnect();
   client.loop();
+
+  EC_Voltage = (uint32_t)analogRead(EC_PIN) * 5000 / 1024;
+  TE_Voltage = (uint32_t)analogRead(TE_PIN) * 5000 / 1024;
+
+  Temp = ecpt.convVoltagetoTemperature_C((float)TE_Voltage/1000);
+  Conductivity = ec.getEC_us_cm(EC_Voltage, Temp);
+
+  Serial.print("EC_Voltage: " + String(EC_Voltage) + " mV\t");
+  Serial.print("Conductivity: " + String(Conductivity) + " us/cm\t");
+  Serial.print("TE_Voltage: " + String(TE_Voltage) + " mV\t");
+  Serial.println("Temp: " + String(Temp) + " ℃");
 
   
 
