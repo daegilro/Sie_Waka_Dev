@@ -2,11 +2,13 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
-#include <DFRobot_ECPRO.h>
+#include <DFRobot_EC.h>
+#include <DFRobot_PH.h>
+#include <EEPROM.h>
 
 //---- WiFi settings
-const char* ssid ="Hola" ;
-const char* password ="123";
+const char* ssid = "AVENIDA SIEMPRE VIVA";
+const char* password = "PRESTEME5000";
 //---- MQTT Broker settings
 const char* mqtt_server = "d008f2372f934a7ab0adb29438c3ef56.s2.eu.hivemq.cloud"; 
 const char* mqtt_username = "daegilro";
@@ -59,29 +61,26 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 -----END CERTIFICATE-----
 )EOF";
 
-//------- Variables sensores--------------
-float temp_sens, cond_sens,ph_sens,tds_sens;
-
-//------ Definicion Pines conexiòn ESP32------------------------
-
-#define EC_PIN 10
-#define TE_PIN 12
-
-
-
-//------- Config Sens Conductividad y Temperatura----------------------
-
-DFRobot_ECPRO ec;
-DFRobot_ECPRO_PT1000 ecpt;
-
-uint16_t EC_Voltage, TE_Voltage;
-float Conductivity, Temp;
+//------- Config Sens Conductividad ----------------------
+#define EC_PIN 25
+DFRobot_EC ec;
+float ecvoltage,ecValue = 1;
 
 //------ Config Sens PH------------------------------------
+#define PH_PIN 26
+DFRobot_PH ph;
+float phvoltage,phValue = 1;
 
+//------ Config Sens Temp------------------------------------
+#define TM_PIN 27
+float temperature = 19;
 void setup() {
 
-Serial.begin(9600);
+Serial.begin(115200);
+//--- Setup Conduct and Temp sens
+
+ec.begin();
+ph.begin();
 Serial.print("\nConnecting to ");
 Serial.println(ssid);
 
@@ -102,10 +101,6 @@ espClient.setCACert(root_ca);
 client.setServer(mqtt_server, mqtt_port);
 client.setCallback(callback);
 
-//--- Setup Conduct and Temp sens
-
-  ec.setCalibration(1); //Replace the 1 with the calibrated K value if it's calibrated
-  Serial.println("Default Calibration K=" + String(ec.getCalibration()));
 }
 
 void loop() {
@@ -113,23 +108,26 @@ void loop() {
   if (!client.connected()) reconnect();
   client.loop();
 
-  EC_Voltage = (uint32_t)analogRead(EC_PIN) * 5000 / 1024;
-  TE_Voltage = (uint32_t)analogRead(TE_PIN) * 5000 / 1024;
-
-  Temp = ecpt.convVoltagetoTemperature_C((float)TE_Voltage/1000);
-  Conductivity = ec.getEC_us_cm(EC_Voltage, Temp);
-
-  Serial.print("EC_Voltage: " + String(EC_Voltage) + " mV\t");
-  Serial.print("Conductivity: " + String(Conductivity) + " us/cm\t");
-  Serial.print("TE_Voltage: " + String(TE_Voltage) + " mV\t");
-  Serial.println("Temp: " + String(Temp) + " ℃");
-
-  
-
-  publishMessage(Sen_Temp_Topic,String(temp_sens),true);  
-  publishMessage(Sen_Cond_Topic,String(cond_sens),true);  
-  publishMessage(Sen_Ph_Topic,String(ph_sens),true);  
-  publishMessage(Sen_TDS_Topic,String(tds_sens),true);    
+  static unsigned long timepoint = millis();
+  if(millis()-timepoint>1000U)  //time interval: 1s
+  {
+    timepoint = millis();
+    ecvoltage = analogRead(EC_PIN)/4095.0*5000;   // read the voltage
+    phvoltage = analogRead(PH_PIN)/4095.0*5000;
+    //temperature = readTemperature();          // read your temperature sensor to execute temperature compensation
+    ecValue =  ec.readEC(ecvoltage,temperature);
+    phValue = ph.readPH(phvoltage,temperature);  // convert voltage to pH with temperature compensation  // convert voltage to EC with temperature compensation
+      Serial.print("temperature:");
+      Serial.print(temperature,1);
+      Serial.print("^C  EC:");
+      Serial.print(ecValue,2);
+      Serial.print("ms/cm  pH:");
+      Serial.println(phValue,3);
+      publishMessage(Sen_Temp_Topic,String(temperature),true);  
+      publishMessage(Sen_Cond_Topic,String(ecValue),true);  
+      publishMessage(Sen_Ph_Topic,String(phValue),true);  
+      //publishMessage(Sen_TDS_Topic,String(tds_sens),true);    
+  }
 }
 
 //=======================================================================Function=================================================================================
@@ -147,7 +145,8 @@ Serial.println("connected");
   client.subscribe(Sen_Temp_Topic);   // subscribe the topics here
   client.subscribe(Sen_Cond_Topic);   // subscribe the topics here
   client.subscribe(Sen_Ph_Topic);   // subscribe the topics here
-  client.subscribe(Sen_TDS_Topic);   // subscribe the topics here
+  //client.subscribe(Sen_TDS_Topic);   // subscribe the topics here
+  client.subscribe("esp32/message");
 } else {
   Serial.print("failed, rc=");
   Serial.print(client.state());
