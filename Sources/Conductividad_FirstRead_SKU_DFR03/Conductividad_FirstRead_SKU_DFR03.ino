@@ -30,6 +30,8 @@ void loop()
       Serial.print("^C  EC:");
       Serial.print(ecValue,2);
       Serial.println("ms/cm");
+      Serial.print("-- RAW:");
+      Serial.println(voltage,2);
     }
     ec.calibration(voltage,temperature);          // calibration process by Serail CMD
 }

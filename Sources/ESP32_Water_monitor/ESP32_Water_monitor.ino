@@ -7,10 +7,10 @@
 #include <EEPROM.h>
 
 //---- WiFi settings
-const char* ssid = "AVENIDA SIEMPRE VIVA";
-const char* password = "PRESTEME5000";
+const char* ssid = "Familia_Isaacs";
+const char* password = "39684436";
 //---- MQTT Broker settings
-const char* mqtt_server = "d008f2372f934a7ab0adb29438c3ef56.s2.eu.hivemq.cloud"; 
+const char* mqtt_server = "d008f2372f934a7ab0adb29438c3ef56.s2.eu.hivemq.cloud";
 const char* mqtt_username = "daegilro";
 const char* mqtt_password = "DavidMQTT123";
 const int mqtt_port = 8883;
@@ -22,10 +22,10 @@ unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (50)
 char msg[MSG_BUFFER_SIZE];
 //------- Topoics MQTT Broker
-const char* Sen_Temp_Topic= "Sensor Temperatura";
-const char* Sen_Cond_Topic= "Sensor Conductividad";
-const char* Sen_Ph_Topic= "Sensor ph";
-const char* Sen_TDS_Topic= "Sensor TDS";
+const char* Sen_Temp_Topic = "Sen_Temp_Topic";
+const char* Sen_Cond_Topic = "Sen_Cond_Topic";
+const char* Sen_Ph_Topic = "Sen_Ph_Topic";
+//const char* Sen_TDS_Topic= "Sensor TDS";
 
 static const char *root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
@@ -108,29 +108,70 @@ void loop() {
   if (!client.connected()) reconnect();
   client.loop();
 
+  char cmd[10];
+
   static unsigned long timepoint = millis();
   if(millis()-timepoint>1000U)  //time interval: 1s
   {
     timepoint = millis();
-    ecvoltage = analogRead(EC_PIN)/4095.0*5000;   // read the voltage
-    phvoltage = analogRead(PH_PIN)/4095.0*5000;
     //temperature = readTemperature();          // read your temperature sensor to execute temperature compensation
-    ecValue =  ec.readEC(ecvoltage,temperature);
+    phvoltage = analogRead(PH_PIN)/4095.0*5000;
+    Serial.print("PH_Raw: ");
+    Serial.println(phvoltage,1);
     phValue = ph.readPH(phvoltage,temperature);  // convert voltage to pH with temperature compensation  // convert voltage to EC with temperature compensation
-      Serial.print("temperature:");
-      Serial.print(temperature,1);
-      Serial.print("^C  EC:");
-      Serial.print(ecValue,2);
-      Serial.print("ms/cm  pH:");
-      Serial.println(phValue,3);
-      publishMessage(Sen_Temp_Topic,String(temperature),true);  
-      publishMessage(Sen_Cond_Topic,String(ecValue),true);  
-      publishMessage(Sen_Ph_Topic,String(phValue),true);  
-      //publishMessage(Sen_TDS_Topic,String(tds_sens),true);    
-  }
+    ecvoltage = analogRead(EC_PIN)/4095.0*5000;   // read the voltage
+    Serial.print("EC_Raw: ");
+    Serial.print(ecvoltage,2);
+    ecValue =  ec.readEC(ecvoltage,temperature);
+    Serial.print("temperature:");
+    Serial.print(temperature,3);
+    Serial.print("^C  EC:");
+    Serial.print(ecValue,4);
+    Serial.print("ms/cm  pH:");
+    Serial.println(phValue,5);
+
+    delay(20);
+  
+    publishMessage(Sen_Temp_Topic,String(temperature),true);  
+    publishMessage(Sen_Cond_Topic,String(ecValue),true);  
+    publishMessage(Sen_Ph_Topic,String(phValue),true);  
+    //publishMessage(Sen_TDS_Topic,String(tds_sens),true);   
+    }
+    
+    if(readSerial(cmd)){
+        strupr(cmd);
+        if(strstr(cmd,"PH")){
+            ph. calibration(phvoltage,temperature,cmd);       //PH calibration process by Serail CMD
+        }
+        if(strstr(cmd,"EC")){
+            ec.calibration(ecvoltage,temperature,cmd);       //EC calibration process by Serail CMD
+        }
+    }
+  
+  
 }
 
+
+
 //=======================================================================Function=================================================================================
+int i = 0;
+bool readSerial(char result[]){
+    while(Serial.available() > 0){
+        char inChar = Serial.read();
+        if(inChar == '\n'){
+             result[i] = '\0';
+             Serial.flush();
+             i=0;
+             return true;
+        }
+        if(inChar != '\r'){
+             result[i] = inChar;
+             i++;
+        }
+        delay(1);
+    }
+    return false;
+}
 
 void reconnect() {
 // Loop until we’re reconnected
@@ -142,11 +183,14 @@ clientId += String(random(0xffff), HEX);
 if (client.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
 Serial.println("connected");
 
-  client.subscribe(Sen_Temp_Topic);   // subscribe the topics here
-  client.subscribe(Sen_Cond_Topic);   // subscribe the topics here
-  client.subscribe(Sen_Ph_Topic);   // subscribe the topics here
-  //client.subscribe(Sen_TDS_Topic);   // subscribe the topics here
-  client.subscribe("esp32/message");
+  client.subscribe(Sen_Temp_Topic);   // subscribe the topics 
+  client.subscribe(Sen_Cond_Topic);   // subscribe the topics 
+  client.subscribe(Sen_Ph_Topic);   // subscribe the topics 
+  //client.subscribe(Sen_TDS_Topic);   // subscribe the topics
+  client.subscribe("esp32/mess_Sg1");
+  client.subscribe("esp32/mess_Sg2");
+  client.subscribe("Engel200/mess_Sg1");
+  client.subscribe("Engel200/mess_Sg2");
 } else {
   Serial.print("failed, rc=");
   Serial.print(client.state());
@@ -162,7 +206,7 @@ Serial.println("connected");
 void callback(char* topic, byte* payload, unsigned int length) {
 String incommingMessage = " ";
 for (int i = 0; i < length; i++) incommingMessage+=(char)payload[i];
-Serial.println("Message arrived [" + String(topic) + "] " + incommingMessage);
+//Serial.println("Message arrived [" + String(topic) + "] " + incommingMessage);
 // check for other commands
 /* else if( strcmp(topic,command2_topic) == 0){
 if (incommingMessage.equals(“1”)) { } // do something else
@@ -172,6 +216,7 @@ if (incommingMessage.equals(“1”)) { } // do something else
 
 //======================================= publising as string
 void publishMessage(const char* topic, String payload , boolean retained){
-if (client.publish(topic, payload.c_str(), true))
-Serial.println("Message publised [" + String(topic)+ "]: "+payload);
+if (client.publish(topic, payload.c_str(), true)){
+  Serial.println("Message publised [" + String(topic)+ "]: "+payload);
+}
 }
