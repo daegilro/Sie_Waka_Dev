@@ -60,13 +60,13 @@ void DFRobot_PH::begin()
 
 float DFRobot_PH::readPH(float voltage, float temperature)
 {
-    float slope = (7.0-4.0)/((this->_neutralVoltage-1775)/3.0 - (this->_acidVoltage-1775)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
-    float intercept =  7.0 - slope*(this->_neutralVoltage-1775)/3.0;
+    float slope = (7.0-4.0)/((this->_neutralVoltage-1500)/3.0 - (this->_acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
+    float intercept =  7.0 - slope*(this->_neutralVoltage-1500)/3.0;
     //Serial.print("slope:");
     //Serial.print(slope);
     //Serial.print(",intercept:");
     //Serial.println(intercept);
-    this->_phValue = slope*(voltage-1775)/3.0+intercept;  //y = k*x + b
+    this->_phValue = slope*(voltage-1500)/3.0+intercept;  //y = k*x + b
     return _phValue;
 }
 

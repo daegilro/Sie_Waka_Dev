@@ -5,16 +5,23 @@
 //#include <Arduino_JSON.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include "DFRobot_PH.h"
-#include "DFRobot_EC.h"
-#include <EEPROM.h>
+//#include "DFRobot_PH.h"
+//#include "DFRobot_EC.h"
+//#include <EEPROM.h>
 
 #define PH_PIN 33
+float acidVoltage    = 2383;    //buffer solution 4.0 at 25C
+float neutralVoltage = 1775;     //buffer solution 7.0 at 25C
+float slopePH,interceptPH, slopeEC,interceptEC = 1;
+
 #define EC_PIN 32
+#define RES2 820.0
+#define ECREF 200.0
+float kValue =0.966;
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-DFRobot_PH ph;
-DFRobot_EC ec;
+//DFRobot_PH ph;
+//DFRobot_EC ec;
 
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
@@ -122,8 +129,8 @@ float readTemperature()
 
 void setup() {
   Serial.begin(115200);
-  ph.begin();
-  ec.begin();
+  //ph.begin();
+  //ec.begin();
   connectAWS();
 }
 
@@ -139,12 +146,16 @@ void loop() {
     Serial.print(analogRead(PH_PIN));
     Serial.print(" Raw_EC: ");
     Serial.println(analogRead(EC_PIN));
-    voltagePH = analogRead(PH_PIN);//4095.0*5000;          // read the ph voltage
-    phValue    = ph.readPH(voltagePH,temperature);       // convert voltage to pH with temperature compensation
-    Serial.print("pH: ");
+    voltagePH = analogRead(PH_PIN)/4095.0*3300;          // read the ph voltage
+    slopePH = (7.0-4.0)/((neutralVoltage-1500)/3.0 - (acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
+    interceptPH =  7.0 - slopePH*(neutralVoltage-1500)/3.0;
+    phValue = slope*(voltagePH-1500)/3.0+interceptPH;  //y = k*x + b
+    Serial.print(" pH: ");
     Serial.print(phValue,2);
-    voltageEC = analogRead(EC_PIN)/4095.0*5000;
-    ecValue    = ec.readEC(voltageEC,temperature);       // convert voltage to EC with temperature compensation
+    voltageEC = analogRead(EC_PIN)/4095.0*3300;
+    rawEC = 1000*voltageEC/RES2/ECREF;
+    ecValue = rawEC * kvalue;             //calculate the EC value after automatic shift
+    //ecValue = ecValue / (1.0+0.0185*(temperature-25.0));  //temperature compensation
     Serial.print(", EC: ");
     Serial.print(ecValue,2);
     Serial.println(" ms/cm");
@@ -154,14 +165,12 @@ void loop() {
       publishMessage(String(temperature),String(ecValue),String(phValue));
       ok_read=false;
       }
-    if(readSerial(cmd)){
-        strupr(cmd);
-        if(strstr(cmd,"PH")){
-            ph.calibration(voltagePH,temperature,cmd);       //PH calibration process by Serail CMD
-        }
-        if(strstr(cmd,"EC")){
-            ec.calibration(voltageEC,temperature,cmd);       //EC calibration process by Serail CMD
-        }
-     }
- 
+    //if(readSerial(cmd)){
+      //strupr(cmd);
+       // if(strstr(cmd,"PH")){
+           // ph.calibration(voltagePH,temperature,cmd);       //PH calibration process by Serail CMD
+        //}
+        //if(strstr(cmd,"EC")){
+            //ec.calibration(voltageEC,temperature,cmd);       //EC calibration process by Serail CMD
+        //}
 }
