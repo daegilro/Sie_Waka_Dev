@@ -36,7 +36,7 @@ void loop() {
     Serial.println(voltagePH);
     slopePH = (7.0-4.0)/((neutralVoltage-1500)/3.0 - (acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     interceptPH =  7.0 - slopePH*(neutralVoltage-1500)/3.0;
-    phValue = slope*(voltagePH-1500)/3.0+interceptPH;  //y = k*x + b
+    phValue = slopePH*(voltagePH-1500)/3.0+interceptPH;  //y = k*x + b
     Serial.print(" pH: ");
     Serial.println(phValue,2);
     voltageEC = analogRead(EC_PIN)/4095.0*3300;
