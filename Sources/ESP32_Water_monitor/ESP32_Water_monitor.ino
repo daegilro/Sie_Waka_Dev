@@ -1,27 +1,29 @@
 #include "secrets.h"
 #include <WiFiClientSecure.h>
-//#include <MQTTClient.h>
 #include <ArduinoJson.h>
-//#include <Arduino_JSON.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-//#include "DFRobot_PH.h"
-//#include "DFRobot_EC.h"
-//#include <EEPROM.h>
 
 #define PH_PIN 33
-float acidVoltage    = 2383;    //buffer solution 4.0 at 25C
-float neutralVoltage = 1775;     //buffer solution 7.0 at 25C
+float acidVoltage    = 1876;    //buffer solution 4.0 at 25C
+float neutralVoltage = 1414;     //buffer solution 7.0 at 25C
 float slopePH,interceptPH, slopeEC,interceptEC = 1;
+float highec    = 1390;    //buffer solution 4.0 at 25C
+float lowec = 60;     //buffer solution 7.0 at 25C
+
 
 #define EC_PIN 32
 #define RES2 820.0
-#define ECREF 200.0
-float kValue =0.966;
+#define ECREF 50
+float kValue =0.993;
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-//DFRobot_PH ph;
-//DFRobot_EC ec;
+
+float readTemperature()
+{
+  //add your code here to get the temperature from your temperature sensor
+}
+
 
 // The MQTT topics that this device should publish/subscribe
 #define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
@@ -95,70 +97,34 @@ if (incommingMessage.equals(“1”)) { } // do something else
 */
 }
 
-//void messageHandler(String &topic, String &payload) {
-//  Serial.println("incoming: " + topic + " - " + payload);
-//
-////  StaticJsonDocument<200> doc;
-////  deserializeJson(doc, payload);
-////  const char* message = doc["message"];
-//}
-
-int i = 0;
-bool readSerial(char result[]){
-    while(Serial.available() > 0){
-        char inChar = Serial.read();
-        if(inChar == '\n'){
-             result[i] = '\0';
-             Serial.flush();
-             i=0;
-             return true;
-        }
-        if(inChar != '\r'){
-             result[i] = inChar;
-             i++;
-        }
-        delay(1);
-    }
-    return false;
-}
-
-float readTemperature()
-{
-  //add your code here to get the temperature from your temperature sensor
-}
 
 void setup() {
   Serial.begin(115200);
-  //ph.begin();
-  //ec.begin();
   connectAWS();
 }
 
 void loop() {
   client.loop();
-  char cmd[10];
   static unsigned long timepoint = millis();
   if(millis()-timepoint>1000U){
     //time interval: 1s
     timepoint = millis();
     //temperature = readTemperature();                   // read your temperature sensor to execute temperature compensation
-    Serial.print("Raw_PH: ");
-    Serial.print(analogRead(PH_PIN)),2;
-    Serial.print(" Raw_EC: ");
-    Serial.println(analogRead(EC_PIN),2);
     voltagePH = analogRead(PH_PIN)/4095.0*3300;          // read the ph voltage
-    Serial.print("PHconver: ");
-    Serial.println(voltagePH);
+    //Serial.print("PHconver: ");
+    //Serial.println(voltagePH);
     slopePH = (7.0-4.0)/((neutralVoltage-1500)/3.0 - (acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     interceptPH =  7.0 - slopePH*(neutralVoltage-1500)/3.0;
-    phValue = slope*(voltagePH-1500)/3.0+interceptPH;  //y = k*x + b
+    phValue = slopePH*(voltagePH-1500)/3.0+interceptPH;  //y = k*x + b
     Serial.print(" pH: ");
     Serial.println(phValue,2);
     voltageEC = analogRead(EC_PIN)/4095.0*3300;
-    Serial.print("ECconver: ");
-    Serial.println(voltageEC);
-    float rawEC = 1000*voltageEC/RES2/ECREF;
-    ecValue = rawEC * kValue;             //calculate the EC value after automatic shift
+    //Serial.print("ECconver: ");
+    //Serial.println(voltageEC);
+    slopeEC = (12.88-1.41)/((highec) - (lowec));  
+    interceptEC =  (12.88 - slopeEC*highec);
+    ecValue = slopeEC*voltageEC + interceptPH-6.44 ;  //y = k*x + b
+    //ecValue = rawEC * kValue;             //calculate the EC value after automatic shift
     //ecValue = ecValue / (1.0+0.0185*(temperature-25.0));  //temperature compensation
     Serial.print(", EC: ");
     Serial.print(ecValue,2);
@@ -169,12 +135,4 @@ void loop() {
       publishMessage(String(temperature),String(ecValue),String(phValue));
       ok_read=false;
       }
-    //if(readSerial(cmd)){
-      //strupr(cmd);
-       // if(strstr(cmd,"PH")){
-           // ph.calibration(voltagePH,temperature,cmd);       //PH calibration process by Serail CMD
-        //}
-        //if(strstr(cmd,"EC")){
-            //ec.calibration(voltageEC,temperature,cmd);       //EC calibration process by Serail CMD
-        //}
 }
