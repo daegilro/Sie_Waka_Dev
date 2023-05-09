@@ -3,6 +3,7 @@ Repositorio para el desarrollo del proyecto SIE WAKA
 El proyecto consiste en el desarrollo de un modulo inhalambrico para sensar la calidad del agua.
 
 El proyecto utiliza la tarjeta de desarrollo ESP32, el protocolo MQTT y el servicio de AWS IoT Core.
+Para más información esta la docuementación de AWS: https://catalog.us-east-1.prod.workshops.aws/workshops/5b127b2f-f879-48b9-9dd0-35aff98c7bbc/en-US/module1/getting-started
 
 # Instrucciones
 ## 1. Materiales:
