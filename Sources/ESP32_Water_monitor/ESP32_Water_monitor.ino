@@ -3,6 +3,8 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <OneWire.h>                
+#include <DallasTemperature.h>
 
 #define PH_PIN 33
 float acidVoltage    = 1876;    //buffer solution 4.0 at 25C
@@ -18,9 +20,13 @@ float lowec = 60;     //buffer solution 7.0 at 25C
 float kValue =0.993;
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-
+OneWire ourWire(35);                //Se establece el pin 2  como bus OneWire
+ 
+DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nuestro sensor
 float readTemperature()
 {
+  sensors.requestTemperatures();   //Se envía el comando para leer la temperatura
+  temperature = sensors.getTempCByIndex(0);
   //add your code here to get the temperature from your temperature sensor
 }
 
@@ -35,6 +41,7 @@ PubSubClient client(net);
 
 void connectAWS()
 {
+  sensors.begin();
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -109,7 +116,7 @@ void loop() {
   if(millis()-timepoint>1000U){
     //time interval: 1s
     timepoint = millis();
-    //temperature = readTemperature();                   // read your temperature sensor to execute temperature compensation
+    temperature = readTemperature();                   // read your temperature sensor to execute temperature compensation
     voltagePH = analogRead(PH_PIN)/4095.0*3300;          // read the ph voltage
     //Serial.print("PHconver: ");
     //Serial.println(voltagePH);
