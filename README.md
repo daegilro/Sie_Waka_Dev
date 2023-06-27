@@ -54,7 +54,9 @@ Para más información esta la docuementación de AWS: https://catalog.us-east-1
         * Manage -> All devices -> Things
         * Seleccionamos nuestro objeto, luego en la seccion de "Certificates" seleccionamos el certificado actual.
         * En Policies, damos click en "Attach policies" y leccionamos nuestra "Policy" perzonalizada, ya que la que aparece ahi es una "Policy" que se genera automaticamente al crear nuestro objeto.
-## 3. Archivo .ino
+## 5. Conexión ESP32 al Pc
+       * Seguir las instrucciones del siguiente link para configurar el IDE de Arduino y lograr programar y esstablecer comunicación serial entre el Pc y la tarjeta ESP32. https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
+## 4. Archivo .ino
         * Contamos con dos archivos .ino que se pueden cargar a la tarjeta ESP32 mediante el ide de Arduino. Para lograr esto primero hay que hacer una pequeña configuración en el IDE de Arduino, siguiendolos pasos de este tutorial: https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
         * Uno de los archivos .ino es para poder probar los sesnores unicamente sin establecer la conexión con el servidor de AWS, mientras el otro ya es desarrollo completo donde contamos con el proceso de conexión a internet via wi-fi y conexión al servidor de AWS.
         En el archivo "secrets.h" reemplazamos la siguiente información:
