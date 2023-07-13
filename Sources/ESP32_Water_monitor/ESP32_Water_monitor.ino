@@ -7,11 +7,12 @@
 #include <DallasTemperature.h>
 
 #define PH_PIN 33
-float acidVoltage    = 1876;    //buffer solution 4.0 at 25C
-float neutralVoltage = 1414;     //buffer solution 7.0 at 25C
+// Valores de Calibración 
+float acidVoltage    = 1876;    //buffer solution 4.0 at 25C voltagePH value
+float neutralVoltage = 1414;     //buffer solution 7.0 at 25C voltagePH value 
 float slopePH,interceptPH, slopeEC,interceptEC = 1;
-float highec    = 1390;    //buffer solution 4.0 at 25C
-float lowec = 60;     //buffer solution 7.0 at 25C
+float highec    = 1390;    //buffer solution 4.0 at 25C voltageEC value
+float lowec = 60;     //buffer solution 7.0 at 25C voltageEC value
 
 
 #define EC_PIN 32
@@ -20,7 +21,7 @@ float lowec = 60;     //buffer solution 7.0 at 25C
 float kValue =0.993;
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-OneWire ourWire(4);                //Se establece el pin 2  como bus OneWire
+OneWire ourWire(4);                //Se establece el pin 4 como bus OneWire
 // Red, green, and blue pins for PWM control
 const int redPin = 13;     // 13 corresponds to GPIO13
 const int greenPin = 12;   // 12 corresponds to GPIO12
@@ -54,14 +55,21 @@ void connectAWS()
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.println("Connecting to Wi-Fi");
+  int i = 0;
 
   while (WiFi.status() != WL_CONNECTED){
     delay(500);
     Serial.print(".");
+    i++;
+    if(i==20){
+      Serial.println("No logro conectarse a la red Wifi");
+      break;
+    }
   }
   ledcWrite(redChannel, 255);
   ledcWrite(greenChannel, 255);
   ledcWrite(blueChannel, 10);
+  Serial.println("AWS Server");
 
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -75,10 +83,16 @@ void connectAWS()
   client.setCallback(callback);
 
   Serial.print("Connecting to AWS IOT");
+  i = 0;
 
   while (!client.connect(THINGNAME)) {
     Serial.print(".");
     delay(100);
+    i++;
+    if(i==20){
+      Serial.println("No logro conectarse a AWS");
+      break;
+    }
   }
 
   if(!client.connected()){
@@ -148,7 +162,7 @@ void loop() {
     Serial.print(temperature,2);
     Serial.println(" ºC");
     voltagePH = analogRead(PH_PIN)/4095.0*3300;          // read the ph voltage
-    //Serial.print("PHconver: ");
+    //Serial.print("PHconver: "); // Descomentar estas dos lineas de codigo para realizar calibracion del sensor de PH
     //Serial.println(voltagePH);
     slopePH = (7.0-4.0)/((neutralVoltage-1500)/3.0 - (acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     interceptPH =  7.0 - slopePH*(neutralVoltage-1500)/3.0;
@@ -156,7 +170,7 @@ void loop() {
     Serial.print("pH: ");
     Serial.println(phValue,2);
     voltageEC = analogRead(EC_PIN)/4095.0*3300;
-    //Serial.print("ECconver: ");
+    //Serial.print("ECconver: ");// Descomentar estas dos lineas de codigo para realizar calibracion del sensor de EC
     //Serial.println(voltageEC);
     slopeEC = (12.88-1.41)/((highec) - (lowec));  
     interceptEC =  (12.88 - slopeEC*highec);
