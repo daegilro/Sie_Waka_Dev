@@ -120,13 +120,14 @@ void publishMessage(float deviceID, float latitude, float longitude,float temper
   info["deviceId"] = deviceID;
   info["latitude"] = latitude;
   info["longitude"] = longitude;
-  JsonObject sensors = root.createNestedObject("measurementValues");
+  JsonObject measurementValues = info.createNestedObject("measurementValues");
   measurementValues["Temperatura del Agua [°Celsius]"] = temperature;
   measurementValues["Conductividad [µs/cm]"] = ecValue;
   measurementValues["pH [Unidades de pH]"] = phValue;
   info["takenAt"]= "2023-07-05T16:03:10Z";
   char jsonBuffer[512];
-  serializeJsonPretty(info, jsonBuffer); // print to client
+  serializeJson(info, jsonBuffer); // print to client
+  
 
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
 }
