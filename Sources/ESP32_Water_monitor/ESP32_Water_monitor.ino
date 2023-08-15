@@ -140,6 +140,7 @@ Serial.println("Message arrived [" + String(topic) + "] " + incommingMessage);
 if (incommingMessage.equals(“1”)) { } // do something else
 }
 */
+
 }
 
 
