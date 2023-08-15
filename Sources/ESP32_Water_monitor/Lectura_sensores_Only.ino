@@ -1,8 +1,4 @@
-#include "secrets.h"
 #include <WiFiClientSecure.h>
-#include <ArduinoJson.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
 #include <OneWire.h>                
 #include <DallasTemperature.h>
 

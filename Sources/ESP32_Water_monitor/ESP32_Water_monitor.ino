@@ -1,3 +1,4 @@
+// LLamado de librerias a utilizar
 #include "secrets.h"
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
@@ -6,21 +7,35 @@
 #include <OneWire.h>                
 #include <DallasTemperature.h>
 
+//Configuracion Identificador  modulo
+float deviceID = 1;
+
+//Configuracion ubicacion modulo
+float latitude = 34.111; 
+float longitude = 58.222;
+
+//Configuración Sensor PH
 #define PH_PIN 33
 float acidVoltage    = 1876;    //buffer solution 4.0 at 25C
 float neutralVoltage = 1414;     //buffer solution 7.0 at 25C
 float slopePH,interceptPH, slopeEC,interceptEC = 1;
-float highec    = 1390;    //buffer solution 4.0 at 25C
-float lowec = 60;     //buffer solution 7.0 at 25C
 
-
+//Configuración sensor EC
 #define EC_PIN 32
 #define RES2 820.0
 #define ECREF 50
 float kValue =0.993;
+float highec    = 1390;    //buffer solution 4.0 at 25C
+float lowec = 60;     //buffer solution 7.0 at 25C
+
+//Configuración sensor temperatura
+OneWire ourWire(4);                //Se establece el pin 4  como bus OneWire para el sensor de temperatura
+DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nuestro sensor
+
+//Configuración variables
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-OneWire ourWire(4);                //Se establece el pin 2  como bus OneWire
+
 // Red, green, and blue pins for PWM control
 const int redPin = 13;     // 13 corresponds to GPIO13
 const int greenPin = 12;   // 12 corresponds to GPIO12
@@ -31,22 +46,20 @@ const int freq = 5000;
 const int redChannel = 0;
 const int greenChannel = 1;
 const int blueChannel = 2;
+
 // Bit resolution 2^8 = 256
 const int resolution = 8;
  
-DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nuestro sensor
 
 
-// The MQTT topics that this device should publish/subscribe
+
+// The MQTT topics, cargar información y recibir información
 #define AWS_IOT_PUBLISH_TOPIC   "samples/upload"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
 WiFiClientSecure net;
 //MQTTClient client = MQTTClient(256);
 PubSubClient client(net);
-//Configuracion ubicacion modulo
-float latitude = 34.111; 
-float longitude = 58.222;
 
 void connectAWS()
 {
@@ -101,22 +114,19 @@ void connectAWS()
   ledcWrite(blueChannel, 255);
 }
 
-void publishMessage(float latitude, float longitude,float temperature, float ecValue, float phValue){
-  StaticJsonDocument<200> dom;
-  dom["Temperatura del Agua [°Celsius]"] = temperature;
-  dom["Conductividad [µs/cm]"] = ecValue;
-  dom["pH [Unidades de pH]"] = phValue;
-  char jsonBufferA[256];
-  serializeJson(dom, jsonBufferA);
+void publishMessage(float deviceID, float latitude, float longitude,float temperature, float ecValue, float phValue){
   StaticJsonDocument<256> doc;
-  //doc["time"] = millis();
-  doc["deviceId"] = 1;
-  doc["latitude"] = latitude;
-  doc["longitude"] = longitude;
-  doc["measurementValues"] = jsonBufferA; //"{\n\"Temperatura del Agua [°Celsius]\" : " + temperature + ",\n\"Conductividad [µs/cm]\" : " + ecValue + ",\n\"pH [Unidades de pH]\" : " + phValue + "\n}";
-  doc["takenAt"]= "2023-07-05T16:03:10Z";
+  JsonObject info = doc.to<JsonObject>();
+  info["deviceId"] = deviceID;
+  info["latitude"] = latitude;
+  info["longitude"] = longitude;
+  JsonObject sensors = root.createNestedObject("measurementValues");
+  measurementValues["Temperatura del Agua [°Celsius]"] = temperature;
+  measurementValues["Conductividad [µs/cm]"] = ecValue;
+  measurementValues["pH [Unidades de pH]"] = phValue;
+  info["takenAt"]= "2023-07-05T16:03:10Z";
   char jsonBuffer[512];
-  serializeJson(doc, jsonBuffer); // print to client
+  serializeJsonPretty(info, jsonBuffer); // print to client
 
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
 }
@@ -183,7 +193,7 @@ void loop() {
       ledcWrite(redChannel, 255);
       ledcWrite(greenChannel, 255);
       ledcWrite(blueChannel, 255);
-      publishMessage(float(latitude),float(longitude),float(temperature), float(ecValue), float(phValue));
+      publishMessage(float(deviceID),float(latitude),float(longitude),float(temperature), float(ecValue), float(phValue));
       ok_read=false;
       delay(500);
       ledcWrite(redChannel, 255);
