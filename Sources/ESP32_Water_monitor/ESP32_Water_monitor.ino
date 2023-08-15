@@ -7,12 +7,11 @@
 #include <DallasTemperature.h>
 
 #define PH_PIN 33
-// Valores de Calibración 
-float acidVoltage    = 1876;    //buffer solution 4.0 at 25C voltagePH value
-float neutralVoltage = 1414;     //buffer solution 7.0 at 25C voltagePH value 
+float acidVoltage    = 1876;    //buffer solution 4.0 at 25C
+float neutralVoltage = 1414;     //buffer solution 7.0 at 25C
 float slopePH,interceptPH, slopeEC,interceptEC = 1;
-float highec    = 1390;    //buffer solution 4.0 at 25C voltageEC value
-float lowec = 60;     //buffer solution 7.0 at 25C voltageEC value
+float highec    = 1390;    //buffer solution 4.0 at 25C
+float lowec = 60;     //buffer solution 7.0 at 25C
 
 
 #define EC_PIN 32
@@ -21,7 +20,7 @@ float lowec = 60;     //buffer solution 7.0 at 25C voltageEC value
 float kValue =0.993;
 bool ok_read = false;
 float  voltagePH, voltageEC, phValue, ecValue, temperature = 19;
-OneWire ourWire(4);                //Se establece el pin 4 como bus OneWire
+OneWire ourWire(4);                //Se establece el pin 2  como bus OneWire
 // Red, green, and blue pins for PWM control
 const int redPin = 13;     // 13 corresponds to GPIO13
 const int greenPin = 12;   // 12 corresponds to GPIO12
@@ -39,12 +38,15 @@ DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nue
 
 
 // The MQTT topics that this device should publish/subscribe
-#define AWS_IOT_PUBLISH_TOPIC   "esp32/pub"
+#define AWS_IOT_PUBLISH_TOPIC   "samples/upload"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
 
 WiFiClientSecure net;
 //MQTTClient client = MQTTClient(256);
 PubSubClient client(net);
+//Configuracion ubicacion modulo
+float latitude = 34.111; 
+float longitude = 58.222;
 
 void connectAWS()
 {
@@ -55,21 +57,14 @@ void connectAWS()
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.println("Connecting to Wi-Fi");
-  int i = 0;
 
   while (WiFi.status() != WL_CONNECTED){
     delay(500);
     Serial.print(".");
-    i++;
-    if(i==20){
-      Serial.println("No logro conectarse a la red Wifi");
-      break;
-    }
   }
   ledcWrite(redChannel, 255);
   ledcWrite(greenChannel, 255);
   ledcWrite(blueChannel, 10);
-  Serial.println("AWS Server");
 
   // Configure WiFiClientSecure to use the AWS IoT device credentials
   net.setCACert(AWS_CERT_CA);
@@ -83,16 +78,10 @@ void connectAWS()
   client.setCallback(callback);
 
   Serial.print("Connecting to AWS IOT");
-  i = 0;
 
   while (!client.connect(THINGNAME)) {
     Serial.print(".");
     delay(100);
-    i++;
-    if(i==20){
-      Serial.println("No logro conectarse a AWS");
-      break;
-    }
   }
 
   if(!client.connected()){
@@ -112,12 +101,20 @@ void connectAWS()
   ledcWrite(blueChannel, 255);
 }
 
-void publishMessage(String temp,String ec,String ph){
-  StaticJsonDocument<200> doc;
-  doc["time"] = millis();
-  doc["Temperatura"] = temp;
-  doc["ElectroCond"] = ec;
-  doc["pH"] = ph;
+void publishMessage(float latitude, float longitude,float temperature, float ecValue, float phValue){
+  StaticJsonDocument<200> dom;
+  dom["Temperatura del Agua [°Celsius]"] = temperature;
+  dom["Conductividad [µs/cm]"] = ecValue;
+  dom["pH [Unidades de pH]"] = phValue;
+  char jsonBufferA[256];
+  serializeJson(dom, jsonBufferA);
+  StaticJsonDocument<256> doc;
+  //doc["time"] = millis();
+  doc["deviceId"] = 1;
+  doc["latitude"] = latitude;
+  doc["longitude"] = longitude;
+  doc["measurementValues"] = jsonBufferA; //"{\n\"Temperatura del Agua [°Celsius]\" : " + temperature + ",\n\"Conductividad [µs/cm]\" : " + ecValue + ",\n\"pH [Unidades de pH]\" : " + phValue + "\n}";
+  doc["takenAt"]= "2023-07-05T16:03:10Z";
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer); // print to client
 
@@ -162,7 +159,7 @@ void loop() {
     Serial.print(temperature,2);
     Serial.println(" ºC");
     voltagePH = analogRead(PH_PIN)/4095.0*3300;          // read the ph voltage
-    //Serial.print("PHconver: "); // Descomentar estas dos lineas de codigo para realizar calibracion del sensor de PH
+    //Serial.print("PHconver: ");
     //Serial.println(voltagePH);
     slopePH = (7.0-4.0)/((neutralVoltage-1500)/3.0 - (acidVoltage-1500)/3.0);  // two point: (_neutralVoltage,7.0),(_acidVoltage,4.0)
     interceptPH =  7.0 - slopePH*(neutralVoltage-1500)/3.0;
@@ -170,7 +167,7 @@ void loop() {
     Serial.print("pH: ");
     Serial.println(phValue,2);
     voltageEC = analogRead(EC_PIN)/4095.0*3300;
-    //Serial.print("ECconver: ");// Descomentar estas dos lineas de codigo para realizar calibracion del sensor de EC
+    //Serial.print("ECconver: ");
     //Serial.println(voltageEC);
     slopeEC = (12.88-1.41)/((highec) - (lowec));  
     interceptEC =  (12.88 - slopeEC*highec);
@@ -186,7 +183,7 @@ void loop() {
       ledcWrite(redChannel, 255);
       ledcWrite(greenChannel, 255);
       ledcWrite(blueChannel, 255);
-      publishMessage(String(temperature),String(ecValue),String(phValue));
+      publishMessage(float(latitude),float(longitude),float(temperature), float(ecValue), float(phValue));
       ok_read=false;
       delay(500);
       ledcWrite(redChannel, 255);
