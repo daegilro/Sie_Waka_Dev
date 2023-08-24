@@ -11,8 +11,8 @@
 float deviceID = 1;
 
 //Configuracion ubicacion modulo
-float latitude = 34.111; 
-float longitude = 58.222;
+float latitude = -34.62994536; 
+float longitude = -58.39187918;
 
 //Configuración Sensor PH
 #define PH_PIN 33
@@ -49,10 +49,8 @@ const int blueChannel = 2;
 
 // Bit resolution 2^8 = 256
 const int resolution = 8;
+
  
-
-
-
 // The MQTT topics, cargar información y recibir información
 #define AWS_IOT_PUBLISH_TOPIC   "samples/upload"
 #define AWS_IOT_SUBSCRIBE_TOPIC "esp32/sub"
@@ -115,6 +113,7 @@ void connectAWS()
 }
 
 void publishMessage(float deviceID, float latitude, float longitude,float temperature, float ecValue, float phValue){
+  
   StaticJsonDocument<256> doc;
   JsonObject info = doc.to<JsonObject>();
   info["deviceId"] = deviceID;
@@ -124,12 +123,18 @@ void publishMessage(float deviceID, float latitude, float longitude,float temper
   measurementValues["Temperatura del Agua [°Celsius]"] = temperature;
   measurementValues["Conductividad [µs/cm]"] = ecValue;
   measurementValues["pH [Unidades de pH]"] = phValue;
-  info["takenAt"]= "2023-08-16T18:48:10Z";
+  info["takenAt"]= "2023-08-24T13:10:10Z";
+  info["apiKey"]= "589be0f62f4502b8490eccaf748cf194";
+  
   char jsonBuffer[512];
+  
   serializeJson(info, jsonBuffer); // print to client
+
+  serializeJson(info, Serial); // print to client
   
 
   client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
+  
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -162,7 +167,7 @@ void setup() {
 void loop() {
   client.loop();
   static unsigned long timepoint = millis();
-  if(millis()-timepoint>1000U){
+  if(millis()-timepoint>6000U){
     //time interval: 1s
     timepoint = millis();
     sensors.requestTemperatures();   //Se envía el comando para leer la temperatura
