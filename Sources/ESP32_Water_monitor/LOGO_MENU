@@ -7,6 +7,10 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+#define down_pin 2
+#define up_pin 4
+#define enter_pin 16
+#define back_pin 17
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 static const uint8_t image_data_Saraarray[1024] = {
@@ -75,29 +79,40 @@ static const uint8_t image_data_Saraarray[1024] = {
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
+
+
 int selected = 0;
 int entered = -1;
-int down = digitalRead(2);
-int up = digitalRead(4);
-int enter = digitalRead(16);
-int back = digitalRead(17);
+
 
 void displaymenu(void) {
 
-  if (up == LOW && down == LOW) {
+  int down = analogRead(down_pin);
+  int up = analogRead(up_pin);
+  int enter = digitalRead(enter_pin);
+  int back = digitalRead(back_pin);
+  Serial.print(down);
+  Serial.print('\t');
+  Serial.print(up);
+  Serial.print('\t');
+  Serial.print(enter);
+  Serial.print('\t');
+  Serial.println(back);
+
+  if (up == 0 && down == 0) {
   };
-  if (up == LOW) {
+  if (up == 0) {
     selected = selected + 1;
     delay(200);
   };
-  if (down == LOW) {
+  if (down == 0) {
     selected = selected - 1;
     delay(200);
   };
-  if (enter == LOW) {
+  if (enter == 0) {
     entered = selected;
   };
-  if (back == LOW) {
+  if (back == 0) {
     entered = -1;
   };
   const char *options[4] = {
@@ -171,6 +186,11 @@ void displaymenu(void) {
  
 void setup() {
   Serial.begin(115200);
+  
+  pinMode(down_pin, INPUT);
+  pinMode(up_pin, INPUT);
+  pinMode(enter_pin, INPUT);
+  pinMode(back_pin, INPUT);
  
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -184,11 +204,9 @@ void setup() {
   // Draw bitmap on the screen
   display.drawBitmap(0, 0, image_data_Saraarray, 128, 64, 1);
   display.display();
-  delay(250);
-
-  display.clearDisplay();
+  delay(2000);
 }
  
 void loop() {
-  
+  displaymenu();  
 }
