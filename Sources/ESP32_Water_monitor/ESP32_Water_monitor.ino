@@ -29,7 +29,7 @@ float highec    = 1390;    //buffer solution 4.0 at 25C
 float lowec = 60;     //buffer solution 7.0 at 25C
 
 //Configuración sensor temperatura
-OneWire ourWire(4);                //Se establece el pin 4  como bus OneWire para el sensor de temperatura
+OneWire ourWire(15);                //Se establece el pin 4  como bus OneWire para el sensor de temperatura
 DallasTemperature sensors(&ourWire); //Se declara una variable u objeto para nuestro sensor
 
 //Configuración variables
