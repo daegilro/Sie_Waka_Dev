@@ -59,8 +59,7 @@ WiFiClientSecure net;
 //MQTTClient client = MQTTClient(256);
 PubSubClient client(net);
 
-void connectAWS()
-{
+void connectAWS(){
   ledcWrite(redChannel, 10);
   ledcWrite(greenChannel, 255);
   ledcWrite(blueChannel, 255);
