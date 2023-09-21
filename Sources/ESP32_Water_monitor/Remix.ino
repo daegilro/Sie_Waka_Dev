@@ -298,7 +298,7 @@ void displaymenu(void) {
     display.print("Temperatura: ");// demas info
     display.print(temperature);
     display.println(" ºC");
-    display.print("Electrocond: ");// demas info
+    display.print("Electrocond: ");// demas  info
     display.print(ecValue);
     display.println(" ms/cm");
     display.print("ph: ");// demas info
